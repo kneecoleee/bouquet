@@ -36,7 +36,7 @@ button.p{background:#ff82a0;color:#2d1423}
 </div>
 <script>
 // ---- EDIT ME (or use ?to=Name&from=Name&msg=text&seed=7 in the link) ----
-const CFG={to:"you",from:"me",msg:"my favorite photo of you rn btw",photo:"photo.jpg",flowers:16,
+const CFG={to:"you",from:"me",msg:"to my #1 bubber",photo:"photo.jpg",flowers:16,
 letter:`hi, bubber!,
 
 happy 11th po :) crazy how time flies so quickly... wdym next month one year na tayo together? i know we're kilometers away at the moment
@@ -124,7 +124,7 @@ function draw(g,over,dim=1){ctx.fillStyle="#14101a";ctx.fillRect(0,0,cv.width,cv
 for(let i=0;i<W*H;i++){const c=(over&&over[i])||g[i];if(!c||c[0]==" ")continue;ctx.fillStyle=rgb(shade(c[1],dim));ctx.fillText(c[0],(i%W)*CW+1,((i/W)|0)*CH+1)}}
 // ---- app ----
 const BEAR=[" _           _ ","(_)_________(_)"," /           \\ ","|   o     o   |","|     (@)     |","|    \\_w_/    |"," \\___________/ "].join("\n");
-$("bear").textContent=BEAR;$("msg").textContent=CFG.msg;$("cap").textContent="wildflowers  *  "+CFG.msg;
+$("bear").textContent=BEAR;$("msg").textContent=CFG.msg;$("cap").textContent="bear and oopy co  *  "+CFG.msg;
 const scene=new Scene(CFG.flowers),CAMO=camOverlay();
 let state="grow",t=0,yaw=0,pitch=.3,auto=true,userPhoto=null,last=0,typing=0;
 const loadImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
