@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wildflowers</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#14101a;color:#eee;font-family:"Courier New",monospace;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:8px}
+#stage{position:relative;width:100%;max-width:900px;container-type:inline-size;touch-action:none}
+canvas#c{width:100%;display:block;background:#14101a}
+#msg{color:#ff82a0;margin:6px 0;text-align:center}
+#bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:6px 0}
+button,label.b{font:inherit;font-weight:bold;border:0;border-radius:6px;padding:10px 16px;background:#3c3237;color:#ddd;cursor:pointer}
+button.p{background:#ff82a0;color:#2d1423}
+.ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;font-size:clamp(11px,1.7cqw,15px)}
+.ov.on{display:flex}
+#bear{white-space:pre;color:#b07848;line-height:1.1;margin:0 0 -4px}
+#paper{background:#fff7e2;color:#552d37;border:2px solid #e15a82;border-radius:4px;padding:3% 5%;width:min(94%,620px);min-height:40%;white-space:pre-wrap;line-height:1.5}
+.row{display:flex;gap:10px;margin-top:10px;justify-content:center}
+#pol{background:#faf7ee;padding:3% 3% 2%;width:min(94%,760px);text-align:center;color:#552d37}
+#pol canvas{width:100%;display:block}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+</style></head><body>
+<div id="stage">
+<canvas id="c"></canvas>
+<div class="ov" id="letter"><pre id="bear"></pre><div id="paper"></div>
+<div class="row"><button id="close">CLOSE</button><button class="p" id="cam">CAMERA &gt;&gt;</button></div></div>
+<div class="ov" id="polov"><div id="pol"><canvas id="ph" width="756" height="594"></canvas><p id="cap"></p></div>
+<div class="row"><button id="back">BACK TO BOUQUET</button><button class="p" id="save">SAVE PHOTO</button></div></div>
+<div id="flash"></div>
+</div>
+<div id="msg"></div>
+<div id="bar">
+<button data-k="l">&#9664;</button><button data-k="r">&#9654;</button><button data-k="u">&#9650;</button><button data-k="d">&#9660;</button><button data-k="s">&#9199;</button>
+<button class="p" id="go">NEXT &gt;&gt;</button>
+<label class="b" id="pick" style="display:none">my photo<input type="file" accept="image/*" hidden id="file"></label>
+</div>
+<script>
+// ---- EDIT ME (or use ?to=Name&from=Name&msg=text&seed=7 in the link) ----
+const CFG={to:"you",from:"me",msg:"you are my favorite wildflower",photo:"photo.jpg",flowers:16,
+letter:`Dear {to},
+
+I couldn't find flowers that would last, so I made some that will. Every petal here is a character, just for you.
+
+Carnations for love, lilies for devotion, and gerberas because they're cheerful, like you.
+
+Thank you for being you.
+
+With love,
+{from}`};
+const Q=new URLSearchParams(location.search);
+["to","from","msg"].forEach(k=>{if(Q.get(k))CFG[k]=Q.get(k)});
+let sd=+Q.get("seed")||(Math.random()*1e9|0);
+const R=()=>{sd|=0;sd=sd+0x6D2B79F5|0;let t=Math.imul(sd^sd>>>15,1|sd);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const rnd=(a,b)=>a+R()*(b-a),pick=a=>a[R()*a.length|0],$=i=>document.getElementById(i),PI=Math.PI;
+const W=100,H=40,CW=9,CH=18,D=170,MID=15,SX=50,SY=17,STEM=18,BLOOM=12,FPS=14;
+const GREENS=[[70,160,80],[110,190,100],[150,200,110],[90,140,70],[180,210,130]];
+const PAL={carnation:[[255,105,150],[235,60,85],[245,235,242],[255,145,125],[220,90,170]],
+lily:[[250,245,232],[255,150,55],[255,155,195],[255,222,90]],
+gerbera:[[255,120,40],[255,70,105],[255,200,50],[255,105,175],[255,245,235]]};
+const SPK=[[255,105,140],[255,215,70],[240,240,250],[180,120,255],[120,200,255]],RIB=[230,90,130];
+const cl=(x,a,b)=>Math.max(a,Math.min(b,x));
+const shade=(c,k)=>c.map(v=>cl(v*k|0,0,255)),mix=(a,b,t)=>a.map((v,i)=>v*(1-t)+b[i]*t|0);
+const rgb=c=>`rgb(${c[0]},${c[1]},${c[2]})`;
+const norm=v=>{const l=Math.hypot(...v)||1;return v.map(x=>x/l)};
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+function bez(p0,p1,p2,n){const o=[];for(let i=0;i<=n;i++){const t=i/n,a=(1-t)**2,b=2*(1-t)*t,c=t*t;o.push([0,1,2].map(k=>a*p0[k]+b*p1[k]+c*p2[k]))}return o}
+function head(kind,Rr,color){const pts=[],st=.4,n=Math.floor((Rr+1)/st);
+for(let iy=-n;iy<=n;iy++)for(let ix=-n;ix<=n;ix++){const u=ix*st,v=iy*st,d=Math.hypot(u,v);if(d>Rr+1)continue;
+const a=Math.atan2(v,u),hq=Math.abs(Math.round(u*2)*7+Math.round(v*2)*13);let c=null;
+if(kind=="carnation"){if(d<=Rr+.7*Math.sin(a*9)){const t=d/(Rr+1),i=hq%5;c=[(t>.45?"&%8@#":"@#&0%")[i],shade(color,.7+.35*(1-t)+.02*i)]}}
+else if(kind=="lily"){const r=Rr*(.2+.8*Math.abs(Math.cos(3*a))**1.4);
+if(d<.9)c=["@",[255,170,40]];else if(d<=r){const t=d/r;c=(t>.3&&t<.7&&hq%4==0)?[":",[200,80,110]]:[t<.45?"0":(hq%2?"o":"O"),shade(color,1-.25*t)]}}
+else if(d<=Rr){if(d<.28*Rr)c=["@",[120,70,45]];else if(d<.42*Rr)c=["%",[210,160,60]];else if(Math.abs(Math.sin(9*a))>.45)c=[d>.85*Rr?"o":"0",shade(color,.8+.2*d/Rr)]}
+if(c)pts.push([d/(Rr+1),u,v,c[0],c[1],mix(shade(c[1],.55),GREENS[0],.3)])}
+return pts.sort((a,b)=>a[0]-b[0])}
+class Scene{
+constructor(n){this.stems=[];this.flowers=[];this.rib=[];this.spk=[];const spots=[];
+for(let i=0;i<n;i++)for(let k=0;k<120;k++){const phi=rnd(0,2*PI),th=rnd(.08,.9),L=rnd(13,26)*(1-.18*th),hz=L*Math.sin(th)*1.1,
+tip=[hz*Math.cos(phi),L*Math.cos(th),hz*Math.sin(phi)];
+if(spots.every(s=>Math.hypot(tip[0]-s.tip[0],tip[1]-s.tip[1],tip[2]-s.tip[2])>8.5)){spots.push({tip,phi,L});break}}
+const order=spots.map((_,i)=>i).sort(()=>R()-.5);
+spots.forEach((s,idx)=>{const start=order[idx]*2,tip=s.tip,pts=bez([0,0,0],[tip[0]*.45,tip[1]*.6,tip[2]*.45],tip,Math.max(8,s.L*1.1*2.4|0)),leaves=[];
+for(let i=3;i<pts.length-6;i++)if(R()<.05){const psi=rnd(0,2*PI),dx=Math.cos(psi),dz=Math.sin(psi);
+for(let j=1;j<4;j++)leaves.push([i,[pts[i][0]+dx*j*.9,pts[i][1]-j*.35,pts[i][2]+dz*j*.9],pick("~'`"),pick(GREENS)])}
+this.stems.push({pts,color:pick(GREENS),leaves,start});
+const kind=pick([..."cccclllggg"].map(x=>({c:"carnation",l:"lily",g:"gerbera"})[x]));
+const Rr={carnation:rnd(2.4,3.4),lily:rnd(4,5.2),gerbera:rnd(3.4,4.4)}[kind];
+const nv=norm([Math.cos(s.phi)*.85,.55,Math.sin(s.phi)*.85]),e1=norm(cross([0,1,0],nv)),e2=cross(nv,e1),h=head(kind,Rr,pick(PAL[kind]));
+this.flowers.push({c:tip,n:nv,e1,e2,pts:h,rhos:h.map(p=>p[0]),start})});
+this.intro=Math.max(0,...this.flowers.map(f=>f.start))+STEM+BLOOM;
+for(let i=0;i<40;i++){const a=2*PI*i/40;this.rib.push([2.6*Math.cos(a),3.5,2.6*Math.sin(a)])}
+for(let i=0;i<45;i++){const an=rnd(0,2*PI),r=rnd(6,26);this.spk.push([[r*Math.cos(an),rnd(4,36),r*Math.sin(an)],pick(".*+"),pick(SPK),R()*12|0])}}
+frame(t,yaw,pitch){const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch),buf=new Array(W*H);
+const put=(px,py,z,ch,col)=>{const x=Math.round(px),y=Math.round(py);if(x<0||x>=W||y<0||y>=H)return;const o=buf[y*W+x];if(!o||z<o[0])buf[y*W+x]=[z,ch,col]};
+const rot=(x0,y0,z0)=>{const x=x0*cy+z0*sy,z1=-x0*sy+z0*cy;return[x,y0*cp+z1*sp,z1*cp-y0*sp]};
+const view=p=>rot(p[0],p[1]-MID,p[2]);
+const proj=p=>{const[x,y,z]=view(p),s=D/(D+z);return[SX+2*x*s,SY-y*s,z]};
+for(const st of this.stems){const cnt=Math.floor(cl((t-st.start)/STEM,0,1)*st.pts.length);if(cnt<2)continue;
+const pr=st.pts.slice(0,cnt).map(proj);
+for(let i=0;i<cnt;i++){const[px,py,z]=pr[i],j=i+1<cnt?i+1:i-1;let vx=(pr[j][0]-px)/2,vy=pr[j][1]-py;if(j<i){vx=-vx;vy=-vy}
+const ch=Math.abs(vx)<.4*Math.abs(vy)?"|:!;"[(i>>1)%4]:Math.abs(vy)<.4*Math.abs(vx)?"-":(vx*vy>0?"\\":"/");put(px,py,z,ch,st.color)}
+for(const[i,p,ch,col]of st.leaves)if(i<cnt){const q=proj(p);put(q[0],q[1],q[2],ch,col)}}
+for(const f of this.flowers){const age=t-f.start-STEM;if(age<=0)continue;let s=Math.min(1,age/BLOOM);s=s*s*(3-2*s);
+let nmax=0;while(nmax<f.rhos.length&&f.rhos[nmax]<=s)nmax++;
+const[cx,cy2,cz]=view(f.c),e1=rot(...f.e1),e2=rot(...f.e2),front=rot(...f.n)[2]<0;
+for(let i=0;i<nmax;i++){const[,u,v,ch,col,bc]=f.pts[i],x=cx+u*e1[0]+v*e2[0],y=cy2+u*e1[1]+v*e2[1],z=cz+u*e1[2]+v*e2[2],sc=D/(D+z);
+put(SX+2*x*sc,SY-y*sc,z,ch,front?col:bc)}}
+if(t>=8)for(const p of this.rib){const q=proj(p);put(q[0],q[1],q[2],"=",RIB)}
+if(t>=this.intro)for(const[p,ch,col,ph]of this.spk)if((t+ph)%12<9){const q=proj(p);put(q[0],q[1],q[2],ch,col)}
+const g=new Array(W*H);buf.forEach((o,i)=>{g[i]=[o[1],shade(o[2],cl(.85-o[0]*.011,.45,1.1))]});return g}}
+// ---- camera overlay ----
+const CAM=(()=>{const iw=30,top=["        .-------.      ___      ","  _____/  [EVF]  \\____|(*)|__   "],
+body=["  SONY                    [o] ","       .-\"\"\"\"\"\"\"-.            ","      /  .-----.  \\    a7C    ","     |  /  @@@  \\  |    II    ","     |  | @@@@@ |  |          ","     |  \\  @@@  /  |          ","      \\  '-----'  /           ","       '-.______.-'           "];
+return[...top,...body.map(r=>"|"+r.slice(0,iw).padEnd(iw)+"|"),"'"+"-".repeat(iw)+"'"]})();
+function camOverlay(){const o=new Array(W*H),set=(x,y,c)=>{o[y*W+x]=c},vf=[230,230,235],x0=9,x1=90,y0=1,y1=34;
+for(let k=0;k<8;k++){set(x0+k,y0,["-",vf]);set(x1-k,y0,["-",vf]);set(x0+k,y1,["-",vf]);set(x1-k,y1,["-",vf])}
+for(let k=1;k<4;k++){set(x0,y0+k,["|",vf]);set(x1,y0+k,["|",vf]);set(x0,y1-k,["|",vf]);set(x1,y1-k,["|",vf])}
+[[x0,y0],[x1,y0],[x0,y1],[x1,y1]].forEach(([x,y])=>set(x,y,["+",vf]));
+const oy=H-CAM.length-3;CAM.forEach((l,j)=>[...l.padEnd(32)].forEach((ch,i)=>set(1+i,oy+j,[ch,
+ch=="@"?[90,140,230]:"o*".includes(ch)?[255,220,90]:/[a-zA-Z0-9]/.test(ch)?[255,255,255]:[170,175,190]])));return o}
+// ---- canvas drawing ----
+const cv=$("c"),ctx=cv.getContext("2d");cv.width=W*CW;cv.height=H*CH;
+function draw(g,over,dim=1){ctx.fillStyle="#14101a";ctx.fillRect(0,0,cv.width,cv.height);ctx.font='15px "Courier New",monospace';ctx.textBaseline="top";
+for(let i=0;i<W*H;i++){const c=(over&&over[i])||g[i];if(!c||c[0]==" ")continue;ctx.fillStyle=rgb(shade(c[1],dim));ctx.fillText(c[0],(i%W)*CW+1,((i/W)|0)*CH+1)}}
+// ---- app ----
+const BEAR=[" _           _ ","(_)_________(_)"," /           \\ ","|   o     o   |","|     (@)     |","|    \\_w_/    |"," \\___________/ "].join("\n");
+$("bear").textContent=BEAR;$("msg").textContent=CFG.msg;$("cap").textContent="wildflowers  *  "+CFG.msg;
+const scene=new Scene(CFG.flowers),CAMO=camOverlay();
+let state="grow",t=0,yaw=0,pitch=.3,auto=true,userPhoto=null,last=0,typing=0;
+const loadImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
+loadImg(CFG.photo).then(i=>{if(i)userPhoto=i});
+$("file").onchange=e=>{const f=e.target.files[0];if(f)loadImg(URL.createObjectURL(f)).then(i=>{if(i)userPhoto=i})};
+function show(s){state=s;$("letter").classList.toggle("on",s=="letter");$("polov").classList.toggle("on",s=="photo");
+$("bar").style.display=(s=="view"||s=="camera"||s=="grow")?"flex":"none";$("pick").style.display=s=="camera"?"inline-block":"none";
+$("go").textContent=s=="camera"?"CLICK!":"NEXT >>"}
+function openLetter(){show("letter");const g=scene.frame(t,yaw,pitch);draw(g,null,.3);const txt=CFG.letter.replace(/{to}/g,CFG.to).replace(/{from}/g,CFG.from),p=$("paper");p.textContent="";
+const id=++typing;let i=0;(function step(){if(id!=typing||i>txt.length)return;p.textContent=txt.slice(0,i);i+=2;setTimeout(step,18)})()}
+function snap(){const f=$("flash");f.style.opacity=1;setTimeout(()=>f.style.opacity=0,120);
+setTimeout(()=>{draw(scene.frame(t,yaw,pitch),null);const pc=$("ph"),x=pc.getContext("2d"),w=pc.width,h=pc.height;
+if(userPhoto){const s=Math.max(w/userPhoto.width,h/userPhoto.height),dw=userPhoto.width*s,dh=userPhoto.height*s;x.drawImage(userPhoto,(w-dw)/2,(h-dh)/2,dw,dh)}
+else x.drawImage(cv,8*CW,1*CH,84*CW,33*CH,0,0,w,h);show("photo")},320)}
+function key(k){if(k=="l")yaw+=.15,auto=false;else if(k=="r")yaw-=.15,auto=false;else if(k=="u")pitch=Math.min(1,pitch+.06);else if(k=="d")pitch=Math.max(-.15,pitch-.06);else if(k=="s")auto=!auto}
+document.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>key(b.dataset.k));
+$("go").onclick=()=>state=="camera"?snap():state=="view"&&openLetter();
+$("close").onclick=()=>show("view");$("cam").onclick=()=>show("camera");$("back").onclick=()=>show("view");
+$("save").onclick=()=>{try{$("ph").toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="wildflowers.png";a.click()})}catch(e){alert("Right-click the photo to save it.")}};
+addEventListener("keydown",e=>{const m={ArrowLeft:"l",ArrowRight:"r",ArrowUp:"u",ArrowDown:"d",a:"l",d:"r",w:"u",s:"d"}[e.key];
+if(m){key(m);e.preventDefault()}else if(e.key==" "){key("s");e.preventDefault()}else if(e.key=="Enter")$("go").click()});
+let drag=null;cv.onpointerdown=e=>{drag=[e.clientX,e.clientY];auto=false};
+addEventListener("pointerup",()=>drag=null);
+addEventListener("pointermove",e=>{if(!drag)return;yaw-=(e.clientX-drag[0])*.01;pitch=cl(pitch+(e.clientY-drag[1])*.005,-.15,1);drag=[e.clientX,e.clientY]});
+function loop(ts){requestAnimationFrame(loop);if(ts-last<1000/FPS)return;last=ts;
+if(state=="grow"){yaw+=.035;if(++t>scene.intro)show("view")}
+else if(state=="view"||state=="camera"){if(auto)yaw+=.03;t++}
+else return;
+draw(scene.frame(t,yaw,pitch),state=="camera"?CAMO:null)}
+show("grow");requestAnimationFrame(loop);
+</script></body></html>
