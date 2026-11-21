@@ -37,16 +37,16 @@ button.p{background:#ff82a0;color:#2d1423}
 <script>
 // ---- EDIT ME (or use ?to=Name&from=Name&msg=text&seed=7 in the link) ----
 const CFG={to:"you",from:"me",msg:"you are my favorite wildflower",photo:"photo.jpg",flowers:16,
-letter:`Dear {to},
+letter:`hi, bubber!,
 
-I couldn't find flowers that would last, so I made some that will. Every petal here is a character, just for you.
+happy 11th po :) crazy how time flies so quickly... wdym next month one year na tayo together? i know we're kilometers away at the moment
+and i know that it's going to be a while before we see each other again but that does not change my love for you.
 
-Carnations for love, lilies for devotion, and gerberas because they're cheerful, like you.
+in fact, i love you more and more with each day that passes. i'm proud of you, bubby, and i can't wait to spend more time with you. i'm
+available for you for the next 102 years. gihigugma tika, mahal.
 
-Thank you for being you.
-
-With love,
-{from}`};
+your favorite bubby,
+bea`};
 const Q=new URLSearchParams(location.search);
 ["to","from","msg"].forEach(k=>{if(Q.get(k))CFG[k]=Q.get(k)});
 let sd=+Q.get("seed")||(Math.random()*1e9|0);
