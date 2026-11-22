@@ -14,44 +14,121 @@ button.p{background:#ff82a0;color:#2d1423}
 .ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;font-size:clamp(11px,1.7cqw,15px)}
 .ov.on{display:flex}
 #bear{white-space:pre;color:#b07848;line-height:1.1;margin:0 0 -4px}
-#paper{background:#fff7e2;color:#552d37;border:2px solid #e15a82;border-radius:4px;padding:3% 5%;width:min(94%,620px);min-height:40%;white-space:pre-wrap;line-height:1.5}
+#paper{background:#fff7e2;color:#552d37;border:2px solid #e15a82;border-radius:4px;padding:3% 5%;width:min(96%,1080px);min-height:40%;white-space:pre-wrap;line-height:1.5}
 .row{display:flex;gap:10px;margin-top:10px;justify-content:center}
-#pol{background:#faf7ee;padding:3% 3% 2%;width:min(94%,760px);text-align:center;color:#552d37}
+/* photo screen: the canvas and the overlay share one grid cell, so the page grows if the polaroid + note are taller than the canvas */
+#stage.photo{display:grid;touch-action:auto}
+#stage.photo>canvas#c{grid-area:1/1;align-self:start}
+#stage.photo>#polov{grid-area:1/1;position:relative;inset:auto;padding:14px 0}
+.polrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:22px;width:96%}
+#pol{flex:1 1 380px;max-width:600px;min-width:0;background:#faf7ee;padding:3% 3% 2%;text-align:center;color:#552d37}
 #pol canvas{width:100%;display:block}
+/* the post-it */
+#postit{position:relative;flex:0 1 230px;min-width:190px;aspect-ratio:1;background:#fff59a;color:#4a3b1c;padding:16px 14px 12px;transform:rotate(3deg);
+box-shadow:3px 8px 16px rgba(0,0,0,.5);font-family:"Segoe Script","Bradley Hand","Marker Felt","Comic Sans MS",cursive;font-size:clamp(14px,2.3cqw,19px)}
+#postit::before{content:"";position:absolute;top:-9px;left:50%;width:74px;height:20px;margin-left:-37px;background:rgba(255,255,255,.38);transform:rotate(-2deg)}
+#note{width:100%;height:100%;overflow:auto;outline:none;white-space:pre-wrap;line-height:1.35;cursor:default;word-break:break-word}
+#note[contenteditable=true]{cursor:text}
+#note:empty::before{content:attr(data-ph);opacity:.5}
+#note:focus{background:rgba(255,255,255,.28)}
+/* lock screen */
+#lock{background:#14101a;gap:12px}
+#padlock{margin:0;color:#ff82a0;line-height:1.1;font-size:1.1em}
+#lq{margin:4px 0 0;color:#ffd0dc;font-size:1.5em;text-align:center;padding:0 6%}
+#ans{font:inherit;font-size:16px;padding:10px 14px;width:min(80%,340px);border-radius:6px;border:2px solid #e15a82;background:#221a24;color:#fff;text-align:center;outline:none}
+#ans:focus{box-shadow:0 0 0 3px rgba(255,130,160,.35)}
+#lockmsg{margin:0;min-height:1.4em;color:#ff82a0;text-align:center}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+#ans.shake{animation:shake .35s}
+@media (prefers-reduced-motion:reduce){#ans.shake{animation:none}}
+/* memory polaroids */
+#pol{touch-action:pan-y}
+#deckrow{align-items:center}
+#count{color:#ff82a0;min-width:6ch;text-align:center}
+/* falling petals (sit above the bouquet, below the letter / polaroid) */
+#petals{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+/* music: the mp3 player slides open under the buttons */
+#music{width:100%;max-width:900px;overflow:hidden;max-height:0;transition:max-height .3s}
+#music.on{max-height:150px}
+#mp3{background:#221a24;border:2px solid #e15a82;border-radius:12px;padding:10px 14px;margin-top:6px;text-align:center;color:#ffd0dc}
+#mtitle{color:#ff82a0;margin-bottom:6px}
+#mbar{display:inline-block;white-space:pre;cursor:pointer;color:#ff82a0;font-size:clamp(11px,2.4vw,16px);user-select:none}
+#mtime{margin:2px 0 8px;color:#c9a9b4}
+.mrow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){#music{transition:none}}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 </style></head><body>
 <div id="stage">
 <canvas id="c"></canvas>
+<canvas id="petals"></canvas>
 <div class="ov" id="letter"><pre id="bear"></pre><div id="paper"></div>
 <div class="row"><button id="close">CLOSE</button><button class="p" id="cam">CAMERA &gt;&gt;</button></div></div>
-<div class="ov" id="polov"><div id="pol"><canvas id="ph" width="756" height="594"></canvas><p id="cap"></p></div>
+<div class="ov" id="polov">
+<div class="polrow">
+<div id="pol"><canvas id="ph" width="756" height="594"></canvas><p id="cap"></p></div>
+<div id="postit"><div id="note" spellcheck="false"></div></div>
+</div>
+<div class="row" id="deckrow"><button id="prev">&#9664;</button><span id="count"></span><button id="nxt">&#9654;</button></div>
 <div class="row"><button id="back">BACK TO BOUQUET</button><button class="p" id="save">SAVE PHOTO</button></div></div>
+<div class="ov" id="lock"><pre id="padlock"></pre><p id="lq"></p>
+<input id="ans" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type your answer">
+<div class="row"><button class="p" id="unlock">UNLOCK</button><button id="hintbtn" style="display:none">HINT</button></div><p id="lockmsg"></p></div>
 <div id="flash"></div>
 </div>
 <div id="msg"></div>
 <div id="bar">
 <button data-k="l">&#9664;</button><button data-k="r">&#9654;</button><button data-k="u">&#9650;</button><button data-k="d">&#9660;</button><button data-k="s">&#9199;</button>
+<button id="petalbtn">petals: on</button><button id="musicbtn">&#9834; music</button>
 <button class="p" id="go">NEXT &gt;&gt;</button>
 <label class="b" id="pick" style="display:none">my photo<input type="file" accept="image/*" hidden id="file"></label>
 </div>
+<div id="music"><div id="mp3">
+<audio id="aud" src="song.mp3" loop preload="metadata"></audio>
+<div id="mtitle">&#9834; now playing: ldr anthem</div>
+<div id="mbar"></div>
+<div id="mtime">0:00 / 0:00</div>
+<div class="mrow"><button id="mrs">&#9198;</button><button class="p" id="mpp">&#9654;</button><button id="mlp">&#8635; loop: on</button><button id="mmt">&#9835; sound: on</button></div>
+</div></div>
 <script>
-// ---- EDIT ME (or use ?to=Name&from=Name&msg=text&seed=7 in the link) ----
-const CFG={to:"you",from:"me",msg:"to my #1 bubber",photo:"photo.jpg",flowers:16,
-letter:`hi, bubber!,
+// ---- EDIT ME (or use ?to=Name&from=Name&msg=text&note=text&seed=7&flowers=22&pink=6 in the link) ----
+// note = what the post-it says. Leave it empty (note:``) to hide the post-it. noteEditable:true lets whoever opens the page change it.
+const CFG={to:"you",from:"me",msg:"to my #1 bubber",photo:"photo.jpg",flowers:22,pinkLilies:6,noteEditable:false,
+note:``,
+// LOCK SCREEN (turned off - set enabled:true to use it): she has to answer this before the bouquet opens. Any of the answers works (capitals, spaces and punctuation are ignored).
+// Heads up: the answers are inside this file, so anyone who views the page source can see them. It's a cute gate, not real security.
+// Add ?nolock=1 to the link to skip it while you're testing.
+lock:{enabled:false,question:"what do i call you?",answers:["bubber","bubby"],hint:"starts with a b :)",wrong:"hmm, not quite... try again",right:"yes! opening..."},
+// MEMORY POLAROIDS: after she takes the bouquet photo she can flip through these. Put the picture files next to index.html.
+// photo.jpg = the first polaroid (it replaces the bouquet shot; delete it to show the bouquet shot instead). The ones below follow it.
+// Each one needs src; caption, date and note are optional (note = that photo's own post-it). photos:[] turns the flip-through off.
+photos:[
+{src:"photo.jpg",caption:"",date:"",note:""},
+{src:"photo1.jpg",caption:"",date:"",note:""},
+{src:"photo2.jpg",caption:"",date:"",note:""},
+{src:"photo3.jpg",caption:"",date:"",note:""}],
+// falling petals (she can switch them off with the petals button)
+petals:true,petalCount:28,
+letter:`hi, bubber!
 
-happy 11th po :) crazy how time flies so quickly... wdym next month one year na tayo together?
+i'm gonna be real honest with you, this was meant for our monthsary but i was a.) way too excited to show you this and b.) i wanted you to have this now.
 
-honestly, there's no one else i would want to spend my mundane days with. and there's no one else i would love to sniff for the rest of my days.
+first of all, congratulations on finishing urinetown, bubby! i really wish i could be there to see you take your bow (and lift), but even though i'm not there, i hope you know that i'm very proud of you and everything you've accomplished in this prod.
+no one else could have done a better job and i'm sure everyone around you is grateful to have you around. i am endlessly proud of you bub.
 
-you have been the greatest surprise i could ever have in this lifetime, and i am so glad i found you. and despite the distance we have at this moment,
-i have grown to love you more and more with every passing day. i can't wait to see you and hold you again, mahal. thank you for existing, and for giving me
-a chance to love you.
+pee pee town aside, i'm also proud of everything else you've done this semester including your defense, and the shoots, and all the editing you have to do at work or for guidon.
+i'm amazed at how you were able to balance it all and excel in all these things on top of other duties you have to do. i was right, you really are supergirl. 
+
+i have grown to love you more and more with every passing day. i can't wait to see you and hold you again, mahal. how privileged am i to be loved by you.
+
+thank you for existing, and for giving me a chance to love you.
 
 gihigugma tika, mahal kita, kaluguran daka, i love you.
 
-from, your favorite bubby`};
+from, spidey`};
 const Q=new URLSearchParams(location.search);
-["to","from","msg"].forEach(k=>{if(Q.get(k))CFG[k]=Q.get(k)});
+["to","from","msg","note"].forEach(k=>{if(Q.get(k))CFG[k]=Q.get(k)});
+if(Q.get("flowers"))CFG.flowers=+Q.get("flowers");
+if(Q.get("pink"))CFG.pinkLilies=+Q.get("pink");
 let sd=+Q.get("seed")||(Math.random()*1e9|0);
 const R=()=>{sd|=0;sd=sd+0x6D2B79F5|0;let t=Math.imul(sd^sd>>>15,1|sd);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 const rnd=(a,b)=>a+R()*(b-a),pick=a=>a[R()*a.length|0],$=i=>document.getElementById(i),PI=Math.PI;
@@ -60,6 +137,7 @@ const GREENS=[[70,160,80],[110,190,100],[150,200,110],[90,140,70],[180,210,130]]
 const PAL={carnation:[[255,105,150],[235,60,85],[245,235,242],[255,145,125],[220,90,170]],
 lily:[[250,245,232],[255,150,55],[255,155,195],[255,222,90]],
 gerbera:[[255,120,40],[255,70,105],[255,200,50],[255,105,175],[255,245,235]]};
+const PINKLILY=[[255,155,195],[255,125,175],[255,190,215],[245,105,160]];
 const SPK=[[255,105,140],[255,215,70],[240,240,250],[180,120,255],[120,200,255]],RIB=[230,90,130];
 const cl=(x,a,b)=>Math.max(a,Math.min(b,x));
 const shade=(c,k)=>c.map(v=>cl(v*k|0,0,255)),mix=(a,b,t)=>a.map((v,i)=>v*(1-t)+b[i]*t|0);
@@ -78,17 +156,22 @@ if(c)pts.push([d/(Rr+1),u,v,c[0],c[1],mix(shade(c[1],.55),GREENS[0],.3)])}
 return pts.sort((a,b)=>a[0]-b[0])}
 class Scene{
 constructor(n){this.stems=[];this.flowers=[];this.rib=[];this.spk=[];const spots=[];
-for(let i=0;i<n;i++)for(let k=0;k<120;k++){const phi=rnd(0,2*PI),th=rnd(.08,.9),L=rnd(13,26)*(1-.18*th),hz=L*Math.sin(th)*1.1,
-tip=[hz*Math.cos(phi),L*Math.cos(th),hz*Math.sin(phi)];
-if(spots.every(s=>Math.hypot(tip[0]-s.tip[0],tip[1]-s.tip[1],tip[2]-s.tip[2])>8.5)){spots.push({tip,phi,L});break}}
+// best-candidate placement: try 40 spots, keep the one farthest from the flowers already placed, so the bouquet fills out evenly
+for(let i=0;i<n;i++){let best=null,bd=-1;
+for(let k=0;k<40;k++){const phi=rnd(0,2*PI),th=rnd(.08,.95),L=rnd(13,27)*(1-.18*th),hz=L*Math.sin(th)*1.1,
+tip=[hz*Math.cos(phi),L*Math.cos(th),hz*Math.sin(phi)],md=spots.length?Math.min(...spots.map(s=>Math.hypot(tip[0]-s.tip[0],tip[1]-s.tip[1],tip[2]-s.tip[2]))):99;
+if(md>bd){bd=md;best={tip,phi,L}}}
+if(bd>6.8)spots.push(best)}
 const order=spots.map((_,i)=>i).sort(()=>R()-.5);
 spots.forEach((s,idx)=>{const start=order[idx]*2,tip=s.tip,pts=bez([0,0,0],[tip[0]*.45,tip[1]*.6,tip[2]*.45],tip,Math.max(8,s.L*1.1*2.4|0)),leaves=[];
 for(let i=3;i<pts.length-6;i++)if(R()<.05){const psi=rnd(0,2*PI),dx=Math.cos(psi),dz=Math.sin(psi);
 for(let j=1;j<4;j++)leaves.push([i,[pts[i][0]+dx*j*.9,pts[i][1]-j*.35,pts[i][2]+dz*j*.9],pick("~'`"),pick(GREENS)])}
 this.stems.push({pts,color:pick(GREENS),leaves,start});
-const kind=pick([..."cccclllggg"].map(x=>({c:"carnation",l:"lily",g:"gerbera"})[x]));
+// the first CFG.pinkLilies flowers are pink lilies; the rest are a random mix
+const pinkL=idx<CFG.pinkLilies;
+const kind=pinkL?"lily":pick([..."cccclllggg"].map(x=>({c:"carnation",l:"lily",g:"gerbera"})[x]));
 const Rr={carnation:rnd(2.4,3.4),lily:rnd(4,5.2),gerbera:rnd(3.4,4.4)}[kind];
-const nv=norm([Math.cos(s.phi)*.85,.55,Math.sin(s.phi)*.85]),e1=norm(cross([0,1,0],nv)),e2=cross(nv,e1),h=head(kind,Rr,pick(PAL[kind]));
+const nv=norm([Math.cos(s.phi)*.85,.55,Math.sin(s.phi)*.85]),e1=norm(cross([0,1,0],nv)),e2=cross(nv,e1),h=head(kind,Rr,pinkL?pick(PINKLILY):pick(PAL[kind]));
 this.flowers.push({c:tip,n:nv,e1,e2,pts:h,rhos:h.map(p=>p[0]),start})});
 this.intro=Math.max(0,...this.flowers.map(f=>f.start))+STEM+BLOOM;
 for(let i=0;i<40;i++){const a=2*PI*i/40;this.rib.push([2.6*Math.cos(a),3.5,2.6*Math.sin(a)])}
@@ -127,27 +210,114 @@ function draw(g,over,dim=1){ctx.fillStyle="#14101a";ctx.fillRect(0,0,cv.width,cv
 for(let i=0;i<W*H;i++){const c=(over&&over[i])||g[i];if(!c||c[0]==" ")continue;ctx.fillStyle=rgb(shade(c[1],dim));ctx.fillText(c[0],(i%W)*CW+1,((i/W)|0)*CH+1)}}
 // ---- app ----
 const BEAR=[" _           _ ","(_)_________(_)"," /           \\ ","|   o     o   |","|     (@)     |","|    \\_w_/    |"," \\___________/ "].join("\n");
-$("bear").textContent=BEAR;$("msg").textContent=CFG.msg;$("cap").textContent="bear and oopy co  *  "+CFG.msg;
+$("bear").textContent=BEAR;$("msg").textContent=CFG.msg;$("cap").textContent="bear and oopy co  *  "+CFG.msg;$("note").textContent=CFG.note;$("note").contentEditable=CFG.noteEditable;
+if(CFG.noteEditable)$("note").dataset.ph="click here to write a note :)";
+$("postit").style.display=(CFG.note.trim()||CFG.noteEditable)?"":"none";
 const scene=new Scene(CFG.flowers),CAMO=camOverlay();
 let state="grow",t=0,yaw=0,pitch=.3,auto=true,userPhoto=null,last=0,typing=0;
 const loadImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
 loadImg(CFG.photo).then(i=>{if(i)userPhoto=i});
 $("file").onchange=e=>{const f=e.target.files[0];if(f)loadImg(URL.createObjectURL(f)).then(i=>{if(i)userPhoto=i})};
-function show(s){state=s;$("letter").classList.toggle("on",s=="letter");$("polov").classList.toggle("on",s=="photo");
+function show(s){state=s;$("lock").classList.toggle("on",s=="lock");$("msg").style.visibility=s=="lock"?"hidden":"visible";$("letter").classList.toggle("on",s=="letter");$("polov").classList.toggle("on",s=="photo");$("stage").classList.toggle("photo",s=="photo");
 $("bar").style.display=(s=="view"||s=="camera"||s=="grow")?"flex":"none";$("pick").style.display=s=="camera"?"inline-block":"none";
 $("go").textContent=s=="camera"?"CLICK!":"NEXT >>"}
 function openLetter(){show("letter");const g=scene.frame(t,yaw,pitch);draw(g,null,.3);const txt=CFG.letter.replace(/{to}/g,CFG.to).replace(/{from}/g,CFG.from),p=$("paper");p.textContent="";
 const id=++typing;let i=0;(function step(){if(id!=typing||i>txt.length)return;p.textContent=txt.slice(0,i);i+=2;setTimeout(step,18)})()}
+// ---- memory polaroids: the bouquet shot is polaroid #1, then CFG.photos ----
+CFG.photos.forEach(p=>loadImg(p.src).then(im=>{p.img=im;if(state=="photo"&&deck[di]===p)renderDeck()})); // p.img: undefined = loading, null = file not found
+let deck=[],di=0,curNote="",snapCv=null,busy=false;
+function cover(x,img,w,h){const s=Math.max(w/img.width,h/img.height),dw=img.width*s,dh=img.height*s;x.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh)}
+function renderDeck(){deck=[{snap:true},...CFG.photos];const it=deck[di],pc=$("ph"),x=pc.getContext("2d"),w=pc.width,h=pc.height;
+x.fillStyle="#1e1822";x.fillRect(0,0,w,h);
+if(it.snap){if(snapCv)x.drawImage(snapCv,0,0)}
+else if(it.img)cover(x,it.img,w,h);
+else{x.fillStyle="#8a7f8c";x.font='22px "Courier New",monospace';x.textAlign="center";x.textBaseline="middle";x.fillText(it.img===null?"can't find "+it.src:"loading...",w/2,h/2)}
+$("cap").textContent=it.snap?"bear and oopy co  *  "+CFG.msg:[it.caption,it.date].filter(Boolean).join("  *  ");
+curNote=it.snap?CFG.note:(it.note||"");$("note").textContent=curNote;
+$("postit").style.display=(curNote.trim()||CFG.noteEditable)?"":"none";
+$("deckrow").style.display=deck.length>1?"flex":"none";$("count").textContent=(di+1)+" / "+deck.length}
+function deckGo(dir){const n=CFG.photos.length+1;if(n<2||busy)return;busy=true;const pol=$("pol"),to=(di+dir+n)%n,swap=()=>{di=to;renderDeck()};
+if(!pol.animate||matchMedia("(prefers-reduced-motion: reduce)").matches){swap();busy=false;return}
+pol.animate([{transform:"none",opacity:1},{transform:`translateX(${-50*dir}px) rotate(${-4*dir}deg)`,opacity:0}],{duration:150,easing:"ease-in"}).onfinish=()=>{swap();
+pol.animate([{transform:`translateX(${50*dir}px) rotate(${4*dir}deg)`,opacity:0},{transform:"none",opacity:1}],{duration:220,easing:"ease-out"}).onfinish=()=>busy=false}}
+$("prev").onclick=()=>deckGo(-1);$("nxt").onclick=()=>deckGo(1);
+let sw=null;$("pol").addEventListener("pointerdown",e=>sw=e.clientX);
+addEventListener("pointerup",e=>{if(sw!=null&&state=="photo"){const d=e.clientX-sw;if(Math.abs(d)>50)deckGo(d<0?1:-1)}sw=null}); // swipe on a phone
 function snap(){const f=$("flash");f.style.opacity=1;setTimeout(()=>f.style.opacity=0,120);
-setTimeout(()=>{draw(scene.frame(t,yaw,pitch),null);const pc=$("ph"),x=pc.getContext("2d"),w=pc.width,h=pc.height;
-if(userPhoto){const s=Math.max(w/userPhoto.width,h/userPhoto.height),dw=userPhoto.width*s,dh=userPhoto.height*s;x.drawImage(userPhoto,(w-dw)/2,(h-dh)/2,dw,dh)}
-else x.drawImage(cv,8*CW,1*CH,84*CW,33*CH,0,0,w,h);show("photo")},320)}
+setTimeout(()=>{const g=scene.frame(t,yaw,pitch);draw(g,null);
+snapCv=document.createElement("canvas");snapCv.width=756;snapCv.height=594;const x=snapCv.getContext("2d");
+if(userPhoto)cover(x,userPhoto,756,594);else x.drawImage(cv,8*CW,1*CH,84*CW,33*CH,0,0,756,594);
+draw(g,null,.25); // dim the bouquet behind the polaroid + note so they stand out
+di=0;renderDeck();show("photo")},320)}
+// ---- lock screen ----
+const LK=CFG.lock,PADLOCK=String.raw`     .-""""""-.     
+    /  .----.  \    
+   |  /      \  |   
+   |  |      |  |   
+ .-'--'------'--'-. 
+ |       __       | 
+ |      (__)      | 
+ |       ||       | 
+ '----------------' `;
+$("padlock").textContent=PADLOCK;$("lq").textContent=LK.question;
+const nrm=v=>String(v).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");
+let tries=0;
+function tryUnlock(){const v=nrm($("ans").value),a=$("ans");
+if(v&&LK.answers.some(x=>nrm(x)==v)){$("lockmsg").textContent=LK.right;a.disabled=true;setTimeout(()=>show("grow"),700);return}
+tries++;$("lockmsg").textContent=LK.wrong;a.classList.remove("shake");void a.offsetWidth;a.classList.add("shake");
+if(tries>=2&&LK.hint)$("hintbtn").style.display="inline-block"}
+$("unlock").onclick=tryUnlock;$("ans").onkeydown=e=>{if(e.key=="Enter")tryUnlock()};$("hintbtn").onclick=()=>$("lockmsg").textContent=LK.hint;
+// ---- falling petals: little characters that sway down the stage (they start once the bouquet has grown) ----
+const pcv=$("petals"),pctx=pcv.getContext("2d"),PETAL_COL=[[255,155,195],[255,125,175],[255,190,215],[250,235,240],[255,170,150],[210,170,255]],GLYPHS=["(",")","~","o","*","0"],pr=(a,b)=>a+Math.random()*(b-a);
+let petals=[],petalsOn=CFG.petals&&!matchMedia("(prefers-reduced-motion: reduce)").matches,pw=900,ph=720,pdpr=1,plast=0;
+function fitPetals(){const r=$("stage").getBoundingClientRect();pdpr=Math.min(typeof devicePixelRatio=="number"?devicePixelRatio:1,2);pw=r.width||900;ph=r.height||720;pcv.width=pw*pdpr;pcv.height=ph*pdpr;pctx.setTransform(pdpr,0,0,pdpr,0,0)}
+fitPetals();addEventListener("resize",fitPetals);if(typeof ResizeObserver!="undefined")new ResizeObserver(fitPetals).observe($("stage"));
+function newPetal(initial){const k=Math.max(.6,pw/900);return{x:pr(0,pw),y:initial?pr(-ph,0):-20,vy:pr(28,60)*k,sw:pr(12,40),sf:pr(.6,1.6),ph:pr(0,6.28),r:pr(0,6.28),rv:pr(-1.5,1.5),sz:pr(14,26)*Math.max(.7,k),g:pick(GLYPHS),c:pick(PETAL_COL),a:pr(.45,.85)}}
+function petalLoop(ts){requestAnimationFrame(petalLoop);const dt=Math.min(.05,(ts-plast)/1000||0);plast=ts;
+const allow=petalsOn&&state!="lock"&&state!="grow",target=Math.round(CFG.petalCount*Math.min(1,Math.max(.5,pw/900)));
+while(allow&&petals.length<target)petals.push(newPetal(true));
+pctx.clearRect(0,0,pw,ph);
+petals=petals.filter(p=>{p.y+=p.vy*dt;p.r+=p.rv*dt;p.ph+=p.sf*dt;
+if(p.y>ph+30){if(allow){Object.assign(p,newPetal(false));return true}return false} // recycle at the top, or let it go if petals are off
+pctx.save();pctx.translate(p.x+Math.sin(p.ph)*p.sw,p.y);pctx.rotate(p.r);pctx.globalAlpha=p.a;pctx.fillStyle=rgb(p.c);
+pctx.font=`${p.sz}px "Courier New",monospace`;pctx.textAlign="center";pctx.textBaseline="middle";pctx.fillText(p.g,0,0);pctx.restore();return true})}
+$("petalbtn").textContent="petals: "+(petalsOn?"on":"off");
+$("petalbtn").onclick=()=>{petalsOn=!petalsOn;$("petalbtn").textContent="petals: "+(petalsOn?"on":"off")};
+// ---- music: the button slides the mp3 player open; browsers block autoplay, so she taps play herself ----
+$("musicbtn").onclick=()=>{const m=$("music"),on=m.classList.toggle("on");$("musicbtn").textContent=on?"\u266A hide music":"\u266A music";if(on)setTimeout(()=>m.scrollIntoView({block:"nearest",behavior:"smooth"}),320)};
+// ---- mp3 player ----
+const au=$("aud"),BL=30,fmt=s=>isFinite(s)?(s/60|0)+":"+String(s%60|0).padStart(2,"0"):"0:00";
+function mdraw(){const f=au.duration?au.currentTime/au.duration:0,n=Math.min(BL-1,Math.floor(f*BL));
+$("mbar").textContent="["+"=".repeat(n)+"o"+"-".repeat(BL-1-n)+"]";$("mtime").textContent=fmt(au.currentTime)+" / "+fmt(au.duration)}
+["timeupdate","loadedmetadata","durationchange"].forEach(ev=>au.addEventListener(ev,mdraw));
+au.addEventListener("play",()=>$("mpp").innerHTML="&#10074;&#10074;");
+au.addEventListener("pause",()=>$("mpp").innerHTML="&#9654;");
+au.addEventListener("error",()=>$("mtitle").textContent="can't find song.mp3");
+$("mpp").onclick=()=>au.paused?au.play().catch(()=>{}):au.pause();
+$("mrs").onclick=()=>{au.currentTime=0;mdraw()};
+$("mlp").onclick=()=>{au.loop=!au.loop;$("mlp").innerHTML="&#8635; loop: "+(au.loop?"on":"off")};
+$("mmt").onclick=()=>{au.muted=!au.muted;$("mmt").innerHTML="&#9835; sound: "+(au.muted?"off":"on")};
+$("mbar").onpointerdown=e=>{const r=$("mbar").getBoundingClientRect();if(au.duration){au.currentTime=cl((e.clientX-r.left)/r.width,0,1)*au.duration;mdraw()}};
+mdraw();
+// ---- save: polaroid + post-it as one picture ----
+function wrap(c,text,maxW){const out=[];text.split("\n").forEach(par=>{let line="";par.split(/\s+/).forEach(w=>{const test=line?line+" "+w:w;if(c.measureText(test).width>maxW&&line){out.push(line);line=w}else line=test});out.push(line)});return out}
+function exportCard(cb){const ph=$("ph"),pw=ph.width,hh=ph.height,note=curNote.trim(),pad=30,cardW=pw+pad*2,cardH=pad+hh+90,ns=300,
+W2=pad+cardW+(note?40+ns+40:pad),H2=pad*2+cardH,c=document.createElement("canvas");c.width=W2;c.height=H2;const x=c.getContext("2d");
+x.fillStyle="#14101a";x.fillRect(0,0,W2,H2);x.fillStyle="#faf7ee";x.fillRect(pad,pad,cardW,cardH);x.drawImage(ph,pad*2,pad*2);
+x.fillStyle="#552d37";x.font='24px "Courier New",monospace';x.textAlign="center";x.textBaseline="middle";x.fillText($("cap").textContent,pad+cardW/2,pad*2+hh+45);
+if(note){x.save();x.translate(pad+cardW+40+ns/2,pad+cardH/2);x.rotate(3*PI/180);
+x.shadowColor="rgba(0,0,0,.5)";x.shadowBlur=18;x.shadowOffsetY=8;x.fillStyle="#fff59a";x.fillRect(-ns/2,-ns/2,ns,ns);x.shadowColor="transparent";
+x.fillStyle="#4a3b1c";x.font='26px "Segoe Script","Bradley Hand","Marker Felt","Comic Sans MS",cursive';x.textAlign="left";x.textBaseline="top";
+wrap(x,note,ns-40).slice(0,Math.floor((ns-40)/34)).forEach((l,i)=>x.fillText(l,-ns/2+20,-ns/2+20+i*34));x.restore()}
+c.toBlob(cb)}
 function key(k){if(k=="l")yaw+=.15,auto=false;else if(k=="r")yaw-=.15,auto=false;else if(k=="u")pitch=Math.min(1,pitch+.06);else if(k=="d")pitch=Math.max(-.15,pitch-.06);else if(k=="s")auto=!auto}
 document.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>key(b.dataset.k));
 $("go").onclick=()=>state=="camera"?snap():state=="view"&&openLetter();
 $("close").onclick=()=>show("view");$("cam").onclick=()=>show("camera");$("back").onclick=()=>show("view");
-$("save").onclick=()=>{try{$("ph").toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="wildflowers.png";a.click()})}catch(e){alert("Right-click the photo to save it.")}};
-addEventListener("keydown",e=>{const m={ArrowLeft:"l",ArrowRight:"r",ArrowUp:"u",ArrowDown:"d",a:"l",d:"r",w:"u",s:"d"}[e.key];
+$("save").onclick=()=>{try{exportCard(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="wildflowers-"+(di+1)+".png";a.click()})}catch(e){alert("Right-click the photo to save it.")}};
+addEventListener("keydown",e=>{if(e.target.closest&&e.target.closest("[contenteditable=true],input"))return; // typing in a text box shouldn't turn the bouquet
+if(state=="photo"){if(e.key=="ArrowLeft"){deckGo(-1);e.preventDefault()}else if(e.key=="ArrowRight"){deckGo(1);e.preventDefault()}return}
+const m={ArrowLeft:"l",ArrowRight:"r",ArrowUp:"u",ArrowDown:"d",a:"l",d:"r",w:"u",s:"d"}[e.key];
 if(m){key(m);e.preventDefault()}else if(e.key==" "){key("s");e.preventDefault()}else if(e.key=="Enter")$("go").click()});
 let drag=null;cv.onpointerdown=e=>{drag=[e.clientX,e.clientY];auto=false};
 addEventListener("pointerup",()=>drag=null);
@@ -157,5 +327,6 @@ if(state=="grow"){yaw+=.035;if(++t>scene.intro)show("view")}
 else if(state=="view"||state=="camera"){if(auto)yaw+=.03;t++}
 else return;
 draw(scene.frame(t,yaw,pitch),state=="camera"?CAMO:null)}
-show("grow");requestAnimationFrame(loop);
+const locked=LK.enabled&&!Q.get("nolock");
+show(locked?"lock":"grow");if(locked)setTimeout(()=>$("ans").focus(),150);requestAnimationFrame(loop);requestAnimationFrame(petalLoop);
 </script></body></html>
