@@ -102,7 +102,7 @@ lock:{enabled:false,question:"what do i call you?",answers:["bubber","bubby"],hi
 // photo.jpg = the first polaroid (it replaces the bouquet shot; delete it to show the bouquet shot instead). The ones below follow it.
 // Each one needs src; caption, date and note are optional (note = that photo's own post-it). photos:[] turns the flip-through off.
 photos:[
-{src:"photo.jpg",caption:"",date:"",note:""},
+{src:"photo4.jpg",caption:"",date:"",note:""},
 {src:"photo1.jpg",caption:"",date:"",note:""},
 {src:"photo2.jpg",caption:"",date:"",note:""},
 {src:"photo3.jpg",caption:"",date:"",note:""}],
@@ -115,16 +115,14 @@ i'm gonna be real honest with you, this was meant for our monthsary but i was a.
 first of all, congratulations on finishing urinetown, bubby! i really wish i could be there to see you take your bow (and lift), but even though i'm not there, i hope you know that i'm very proud of you and everything you've accomplished in this prod.
 no one else could have done a better job and i'm sure everyone around you is grateful to have you around. i am endlessly proud of you bub.
 
-pee pee town aside, i'm also proud of everything else you've done this semester including your defense, and the shoots, and all the editing you have to do at work or for guidon.
-i'm amazed at how you were able to balance it all and excel in all these things on top of other duties you have to do. i was right, you really are supergirl. 
+pee pee town aside, i'm also proud of everything else you've done this semester including your defense, and the shoots, and all the editing you have to do at work or for guidon. i'm amazed at how you were able to balance it all and excel in all these things on top of other duties you have to do. i was right, you really are supergirl. 
 
 i have grown to love you more and more with every passing day. i can't wait to see you and hold you again, mahal. how privileged am i to be loved by you.
 
-thank you for existing, and for giving me a chance to love you.
-
-gihigugma tika, mahal kita, kaluguran daka, i love you.
+thank you for existing, and for giving me a chance to love you. gihigugma tika, mahal kita, kaluguran daka, i love you.
 
 from, spidey`};
+
 const Q=new URLSearchParams(location.search);
 ["to","from","msg","note"].forEach(k=>{if(Q.get(k))CFG[k]=Q.get(k)});
 if(Q.get("flowers"))CFG.flowers=+Q.get("flowers");
